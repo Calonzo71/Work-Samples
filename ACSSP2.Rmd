@@ -1,0 +1,103 @@
+---
+title: "ACSSP2"
+author: "Carlos"
+date: "2023-10-07"
+output:
+  pdf_document: default
+  html_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+The purpose of this project was to create a program that could be feed responses from a student survey and mine the repsonses for the most common word occurences in order to help the academic services department understand the students feedback.
+
+```{r Set Diretory}
+getwd()
+setwd("/Users/carlosalonzo/desktop/ACCSS")
+install.packages("writexl")
+library(writexl)
+```
+
+```{r Main code}
+# Load the necessary libraries
+library(dplyr)
+library(readr)
+library(tm)
+
+# Modified process_dataframe function
+process_dataframe <- function(input_df) {
+  # Create empty vectors to store words, frequencies, and corresponding column names
+  all_words <- character(0)
+  all_frequencies <- integer(0)
+  col_names <- character(0)
+  
+  # Define the range of columns to process (excluding the first two columns)
+  start_col <- 3  # Start processing from the third column
+  end_col <- ncol(input_df)  # Process up to the last column
+  
+  # Iterate through columns
+  for (col_idx in start_col:end_col) {
+    col_name <- names(input_df)[col_idx]
+    col_data <- input_df[[col_idx]]
+    
+    # Split text and store words and column names
+    words <- unlist(strsplit(col_data, ","))
+    frequencies <- table(words)
+    
+    # Append words, frequencies, and column names to vectors
+    all_words <- c(all_words, names(frequencies))
+    all_frequencies <- c(all_frequencies, as.vector(frequencies))
+    col_names <- c(col_names, rep(col_name, length(frequencies)))
+  }
+  
+  # Create a data frame with words, frequencies, and column names
+  word_freq_df <- data.frame(
+    Word = all_words,
+    Frequency = all_frequencies,
+    Column = col_names
+  )
+  
+  return(word_freq_df)
+}
+
+
+df <- Copy_of_2018_2022_Orientation_Survey_Data #retrieve data
+
+# Define the list of conditions
+conditions <- c(
+ "Other","Textile Technology" 
+ #Other conditions: "Textile Engineering" "Fashion Textile Management" "Fashioin Textile Design" "Polymer and Chemistry" "Fall 2019" "Spring 2020" "Fall 2020" "Spring 2021" "Fall 2022"
+)
+
+# Create an empty list to store filtered dataframes
+filtered_dfs <- list()
+
+# Iterate through each condition and filter the dataframe
+for (condition in conditions) {
+  filtered_df <- filter(df, Q1 == condition) #CHANGE ME
+  filtered_dfs[[condition]] <- filtered_df
+}
+
+for (condition in conditions) {
+  filtered_df <- filtered_dfs[[condition]]
+  result_df <- process_dataframe(filtered_df)
+  
+  # Print the result for the current condition
+  cat("Result for", condition, ":\n")
+  print(result_df)
+  
+  # Export the result dataframe to an Excel file
+  output_file_name <- paste0("output_", gsub(" ", "_", condition), ".xlsx")
+  write_xlsx(result_df, path = output_file_name)
+  cat("Exported to", output_file_name, "\n")
+}
+
+
+```
+
+
